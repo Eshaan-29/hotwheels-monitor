@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/app.ts",
+    "dev": "node --loader tsx src/app.ts"
+,
     "start": "node dist/app.js"
   },
   "dependencies": {
