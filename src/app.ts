@@ -1,3 +1,18 @@
+import http from "http";
+
+const port = Number(process.env.PORT) || 10000;
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Hot Wheels monitor running\n");
+});
+
+server.listen({ port, host: "0.0.0.0" }, () => {
+  console.log(`HTTP server listening on port ${port}`);
+});
+
+
+
 import axios from "axios";
 import { load } from "cheerio";
 import * as cron from "node-cron";
