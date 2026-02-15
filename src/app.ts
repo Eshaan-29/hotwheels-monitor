@@ -7,7 +7,7 @@ const server = http.createServer((req, res) => {
   res.end("Hot Wheels monitor running\n");
 });
 
-server.listen({ port, host: "0.0.0.0" }, () => {
+server.listen(port, () => {
   console.log(`HTTP server listening on port ${port}`);
 });
 
