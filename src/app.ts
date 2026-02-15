@@ -319,6 +319,11 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
+ // Test WhatsApp alert
+  await sendWhatsApp("Test Hot Wheels alert from Render deploy");
+
+  console.log("\n✅ Monitor cycle complete!\n");
+
 }
 
 console.log("🚀 Starting Hot Wheels Monitor...\n");
