@@ -39,8 +39,6 @@ interface Product {
   lastAlertTime: string;
 }
 
-
-
 let products: Product[] = [];
 
 function loadProducts(): void {
@@ -101,13 +99,11 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  const searchUrl = `https://www.firstcry.com/search?q=${encodeURIComponent(
-    "hotwheels"
-  )}`;
-  console.log(`🔍 Searching: hotwheels`);
+  const listUrl = "https://www.firstcry.com/hot-wheels/5/0/113";
+  console.log("🔍 Fetching Hot Wheels list page");
 
   try {
-    const response = await axios.get(searchUrl, {
+    const response = await axios.get(listUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -144,13 +140,11 @@ async function scrapeHotWheels(): Promise<Product[]> {
         const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
 
         let url =
-          $elem.find("a[href*='/p/']").first().attr("href") ||
+          $elem.find("a[href*='/product/'], a[href*='/p/']").first().attr("href") ||
           $elem.find("a").first().attr("href") ||
           "";
 
-        const matches = true;
-
-        if (matches && price > 50 && name.length > 3) {
+        if (price > 50 && name.length > 3) {
           products_found.push({
             name,
             category: "Hot Wheels",
@@ -174,7 +168,7 @@ async function scrapeHotWheels(): Promise<Product[]> {
     results.push(...unique);
     console.log(`  ✓ Found ${unique.length} items`);
   } catch (error) {
-    console.log(`⚠️ Error scraping hotwheels`);
+    console.log("⚠️ Error scraping Hot Wheels list page");
   }
 
   return results;
@@ -213,7 +207,7 @@ async function monitorHotWheels(): Promise<void> {
         }
         // no price-drop branch
       } catch (error) {
-        console.log(`⚠️ Error processing`);
+        console.log("⚠️ Error processing");
       }
     }
 
@@ -233,7 +227,7 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log("📦 Monitoring: All Hot Wheels (search q=hotwheels)");
+console.log("📦 Monitoring: Hot Wheels category page");
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
