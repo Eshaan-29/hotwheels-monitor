@@ -41,7 +41,7 @@ interface Product {
 
 const WISHLIST = [
   {
-    name: "Ferrari",
+    name: "Hotwheels",
     keywords: [
       "ferrari",
       "f40",
