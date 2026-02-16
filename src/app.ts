@@ -99,7 +99,8 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  const listUrl = "https://www.firstcry.com/hotwheels/5/0/113?sort=popularity&q=ard-hotwheels&ref2=q_ard_hotwheels&asid=53241";
+  const listUrl =
+    "https://www.firstcry.com/hotwheels/5/0/113?sort=popularity&q=ard-hotwheels&ref2=q_ard_hotwheels&asid=53241";
   console.log("🔍 Fetching Hot Wheels list page");
 
   try {
@@ -115,48 +116,58 @@ async function scrapeHotWheels(): Promise<Product[]> {
 
     const products_found: Product[] = [];
 
-    $(
-      '[data-testid="productCard"], [class*="productCard"], [class*="product-card"], div[class*="product"]'
-    ).each((index: number, element: any) => {
+    // Broadly scan <li> elements that look like product tiles
+    $("li").each((index: number, element: any) => {
       try {
         const $elem = $(element);
 
-        let name = $elem
-          .find("h2, h3, [class*='title']")
-          .first()
-          .text()
-          .trim();
-
-        if (!name) {
-          name = $elem.find("a").first().attr("title") || "";
+        const cls = ($elem.attr("class") || "").toLowerCase();
+        if (
+          !cls.includes("prod") &&
+          !cls.includes("product") &&
+          !cls.includes("list") &&
+          !cls.includes("item")
+        ) {
+          return;
         }
 
+        let name =
+          $elem.find("h2, h3, h4, [class*='title']").first().text().trim() ||
+          $elem.find("a[title]").first().attr("title") ||
+          "";
+
+        if (!name || name.length <= 3) return;
+
         let priceText = $elem
-          .find("[class*='price'], [data-testid*='price']")
+          .find("[class*='price'], [data-testid*='price'], .f-price")
           .first()
           .text()
           .trim();
 
         const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
+        if (!price || price <= 0) return;
 
         let url =
-          $elem.find("a[href*='/product/'], a[href*='/p/']").first().attr("href") ||
+          $elem
+            .find("a[href*='/product/'], a[href*='/p/']")
+            .first()
+            .attr("href") ||
           $elem.find("a").first().attr("href") ||
           "";
 
-        if (price > 50 && name.length > 3) {
-          products_found.push({
-            name,
-            category: "Hot Wheels",
-            price,
-            url: url.startsWith("http")
-              ? url
-              : `https://www.firstcry.com${url}`,
-            inStock: true,
-            lastAlertTime: new Date().toISOString(),
-          });
-        }
-      } catch (e) {
+        products_found.push({
+          name,
+          category: "Hot Wheels",
+          price,
+          url: url && url.startsWith("http")
+            ? url
+            : url
+            ? `https://www.firstcry.com${url}`
+            : listUrl,
+          inStock: true,
+          lastAlertTime: new Date().toISOString(),
+        });
+      } catch {
         // Skip invalid item
       }
     });
@@ -227,7 +238,7 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log("📦 Monitoring: Hot Wheels category page");
+console.log("📦 Monitoring: Hot Wheels list page");
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
