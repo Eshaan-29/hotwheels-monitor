@@ -39,6 +39,14 @@ interface Product {
   lastAlertTime: string;
 }
 
+// MANUAL LIST: products you care about
+const MONITORED_PRODUCTS = [
+  {
+    name: "Hot Wheels Die Cast Free Wheel Fat Ride Bike Green and Black",
+    url: "https://www.firstcry.com/hot-wheels/hot-wheels-die-cast-free-wheel-fat-ride-bike-green-and-black/2232875/product-detail",
+  },
+];
+
 let products: Product[] = [];
 
 function loadProducts(): void {
@@ -96,90 +104,57 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
   }
 }
 
+// NEW: scrape specific product pages you listed
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  const listUrl =
-    "https://www.firstcry.com/hotwheels/5/0/113?sort=popularity&q=ard-hotwheels&ref2=q_ard_hotwheels&asid=53241";
-  console.log("🔍 Fetching Hot Wheels list page");
+  for (const item of MONITORED_PRODUCTS) {
+    try {
+      console.log(`🔍 Checking: ${item.name}`);
+      const response = await axios.get(item.url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        timeout: 10000,
+      });
 
-  try {
-    const response = await axios.get(listUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-      timeout: 10000,
-    });
+      const $ = load(response.data);
 
-    const $ = load(response.data);
+      // Try common price selectors on product page
+      let priceText = $(
+        "[class*='price'], [data-testid*='price'], .f-price, .our_price, .prod-price"
+      )
+        .first()
+        .text()
+        .trim();
 
-    const products_found: Product[] = [];
+      const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
 
-    // Broadly scan <li> elements that look like product tiles
-    $("li").each((index: number, element: any) => {
-      try {
-        const $elem = $(element);
-
-        const cls = ($elem.attr("class") || "").toLowerCase();
-        if (
-          !cls.includes("prod") &&
-          !cls.includes("product") &&
-          !cls.includes("list") &&
-          !cls.includes("item")
-        ) {
-          return;
-        }
-
-        let name =
-          $elem.find("h2, h3, h4, [class*='title']").first().text().trim() ||
-          $elem.find("a[title]").first().attr("title") ||
-          "";
-
-        if (!name || name.length <= 3) return;
-
-        let priceText = $elem
-          .find("[class*='price'], [data-testid*='price'], .f-price")
-          .first()
-          .text()
-          .trim();
-
-        const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
-        if (!price || price <= 0) return;
-
-        let url =
-          $elem
-            .find("a[href*='/product/'], a[href*='/p/']")
-            .first()
-            .attr("href") ||
-          $elem.find("a").first().attr("href") ||
-          "";
-
-        products_found.push({
-          name,
-          category: "Hot Wheels",
-          price,
-          url: url && url.startsWith("http")
-            ? url
-            : url
-            ? `https://www.firstcry.com${url}`
-            : listUrl,
-          inStock: true,
-          lastAlertTime: new Date().toISOString(),
-        });
-      } catch {
-        // Skip invalid item
+      if (!price || price <= 0) {
+        console.log(`  ⚠️ No price found for ${item.name}`);
+        continue;
       }
-    });
 
-    const unique = products_found.filter(
-      (p, i, arr) => arr.findIndex((item) => item.name === p.name) === i
-    );
+      // Optional: detect out-of-stock by text
+      const pageText = $.text().toLowerCase();
+      const inStock = !pageText.includes("out of stock");
 
-    results.push(...unique);
-    console.log(`  ✓ Found ${unique.length} items`);
-  } catch (error) {
-    console.log("⚠️ Error scraping Hot Wheels list page");
+      results.push({
+        name: item.name,
+        category: "Hot Wheels",
+        price,
+        url: item.url,
+        inStock,
+        lastAlertTime: new Date().toISOString(),
+      });
+
+      console.log(
+        `  ✓ Price: ₹${price}, inStock: ${inStock ? "yes" : "no"}`
+      );
+    } catch (error) {
+      console.log(`⚠️ Error checking ${item.name}`);
+    }
   }
 
   return results;
@@ -197,7 +172,7 @@ async function monitorHotWheels(): Promise<void> {
   try {
     loadProducts();
     const found = await scrapeHotWheels();
-    console.log(`\n📊 Total products found: ${found.length}\n`);
+    console.log(`\n📊 Total products checked: ${found.length}\n`);
 
     for (const product of found) {
       try {
@@ -215,8 +190,28 @@ async function monitorHotWheels(): Promise<void> {
             `🎉 *NEW ${product.category.toUpperCase()}!*\n\n${product.name}\n\n💰 Price: ₹${product.price}`,
             product.url
           );
+        } else if (product.price < existing.price) {
+          const discount = (
+            ((existing.price - product.price) / existing.price) *
+            100
+          ).toFixed(1);
+
+          console.log(`\n💰 PRICE DROP!`);
+          console.log(`   Name: ${product.name}`);
+          console.log(`   Old: ₹${existing.price}`);
+          console.log(`   New: ₹${product.price}`);
+          console.log(`   Discount: ${discount}%`);
+
+          updateProduct(product.name, {
+            price: product.price,
+            lastAlertTime: new Date().toISOString(),
+          });
+
+          await sendWhatsApp(
+            `💰 *PRICE DROP!*\n\n${product.name}\n\nOld: ₹${existing.price}\nNew: ₹${product.price}\n📉 ${discount}% Off`,
+            product.url
+          );
         }
-        // no price-drop branch
       } catch (error) {
         console.log("⚠️ Error processing");
       }
@@ -238,7 +233,7 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log("📦 Monitoring: Hot Wheels list page");
+console.log("📦 Monitoring: manual Hot Wheels product list");
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
