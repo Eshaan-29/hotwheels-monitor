@@ -1,3 +1,4 @@
+
 import http from "http";
 
 const port = Number(process.env.PORT) || 10000;
@@ -39,11 +40,124 @@ interface Product {
   lastAlertTime: string;
 }
 
-// MANUAL LIST: products you care about
-const MONITORED_PRODUCTS = [
+const WISHLIST = [
   {
-    name: "Hot Wheels Die Cast Free Wheel Fat Ride Bike Green and Black",
-    url: "https://www.firstcry.com/hot-wheels/hot-wheels-die-cast-free-wheel-fat-ride-bike-green-and-black/2232875/product-detail",
+    name: "ferrari",
+    keywords: [
+      "ferrari",
+      "f40",
+      "f8",
+      "488",
+      "sf90",
+      "f430",
+      "laferrari",
+      "testarossa",
+      "portofino",
+      "812",
+      "california",
+      "enzo",
+    ],
+  },
+  {
+    name: "Porsche",
+    keywords: [
+      "porsche",
+      "911",
+      "turbo",
+      "gt",
+      "carrera",
+      "cayman",
+      "boxster",
+      "panamera",
+      "cayenne",
+      "macan",
+      "rs",
+      "rsr",
+    ],
+  },
+  {
+    name: "F1",
+    keywords: [
+      "formula",
+      "f1",
+      "formula 1",
+      "mclaren",
+      "red bull",
+      "mercedes",
+      "ferrari f1",
+      "aston martin",
+      "alpine",
+      "haas",
+      "williams",
+    ],
+  },
+  {
+    name: "Premium",
+    keywords: [
+      "premium",
+      "collector",
+      "vintage",
+      "classic",
+      "real riders",
+      "metal base",
+      "chrome",
+      "collection",
+    ],
+  },
+  {
+    name: "Treasure Hunt",
+    keywords: [
+      "treasure hunt",
+      "sth",
+      "rare",
+      "limited",
+      "exclusive",
+      "special edition",
+      "chase",
+    ],
+  },
+  {
+    name: "Mustang",
+    keywords: [
+      "mustang",
+      "ford mustang",
+      "gt500",
+      "shelby",
+      "boss",
+      "mach 1",
+      "fastback",
+    ],
+  },
+  {
+    name: "Mazda",
+    keywords: [
+      "mazda",
+      "rx-7",
+      "rx7",
+      "miata",
+      "mx-5",
+      "rx-8",
+      "rx8",
+      "speed3",
+      "mazdaspeed",
+      "rotary",
+    ],
+  },
+  {
+    name: "Lamborghini",
+    keywords: [
+      "lamborghini",
+      "lambo",
+      "aventador",
+      "reventon",
+      "gallardo",
+      "murcielago",
+      "diablo",
+      "countach",
+      "huracan",
+      "urus",
+      "sesto",
+    ],
   },
 ];
 
@@ -104,14 +218,17 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
   }
 }
 
-// NEW: scrape specific product pages you listed
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  for (const item of MONITORED_PRODUCTS) {
+  for (const cat of WISHLIST) {
     try {
-      console.log(`🔍 Checking: ${item.name}`);
-      const response = await axios.get(item.url, {
+      const searchUrl = `https://www.firstcry.com/search?q=${encodeURIComponent(
+        cat.name + " hotwheels"
+      )}`;
+      console.log(`🔍 Searching: ${cat.name}`);
+
+      const response = await axios.get(searchUrl, {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -121,39 +238,67 @@ async function scrapeHotWheels(): Promise<Product[]> {
 
       const $ = load(response.data);
 
-      // Try common price selectors on product page
-      let priceText = $(
-        "[class*='price'], [data-testid*='price'], .f-price, .our_price, .prod-price"
-      )
-        .first()
-        .text()
-        .trim();
+      const products_found: Product[] = [];
 
-      const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
+      $(
+        '[data-testid="productCard"], [class*="productCard"], [class*="product-card"], div[class*="product"]'
+      ).each((index: number, element: any) => {
+        try {
+          const $elem = $(element);
 
-      if (!price || price <= 0) {
-        console.log(`  ⚠️ No price found for ${item.name}`);
-        continue;
-      }
+          let name = $elem
+            .find("h2, h3, [class*='title']")
+            .first()
+            .text()
+            .trim();
 
-      // Optional: detect out-of-stock by text
-      const pageText = $.text().toLowerCase();
-      const inStock = !pageText.includes("out of stock");
+          if (!name) {
+            name = $elem.find("a").first().attr("title") || "";
+          }
 
-      results.push({
-        name: item.name,
-        category: "Hot Wheels",
-        price,
-        url: item.url,
-        inStock,
-        lastAlertTime: new Date().toISOString(),
+          let priceText = $elem
+            .find("[class*='price'], [data-testid*='price']")
+            .first()
+            .text()
+            .trim();
+
+          const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
+
+          let url =
+            $elem.find("a[href*='/p/']").first().attr("href") ||
+            $elem.find("a").first().attr("href") ||
+            "";
+
+                       // TEST MODE: accept every product with a valid price & name
+          const matches = true; // force match for all items
+
+          if (matches && price > 50 && name.length > 3) {
+            products_found.push({
+              name,
+              category: cat.name,
+              price,
+              url: url.startsWith("http")
+                ? url
+                : `https://www.firstcry.com${url}`,
+              inStock: true,
+              lastAlertTime: new Date().toISOString(),
+            });
+          }
+
+
+        } catch (e) {
+          // Skip
+        }
       });
 
-      console.log(
-        `  ✓ Price: ₹${price}, inStock: ${inStock ? "yes" : "no"}`
+      const unique = products_found.filter(
+        (p, i, arr) => arr.findIndex((item) => item.name === p.name) === i
       );
+
+      results.push(...unique);
+      console.log(`  ✓ Found ${unique.length} items`);
     } catch (error) {
-      console.log(`⚠️ Error checking ${item.name}`);
+      console.log(`⚠️ Error scraping ${cat.name}`);
     }
   }
 
@@ -172,7 +317,7 @@ async function monitorHotWheels(): Promise<void> {
   try {
     loadProducts();
     const found = await scrapeHotWheels();
-    console.log(`\n📊 Total products checked: ${found.length}\n`);
+    console.log(`\n📊 Total products found: ${found.length}\n`);
 
     for (const product of found) {
       try {
@@ -213,7 +358,7 @@ async function monitorHotWheels(): Promise<void> {
           );
         }
       } catch (error) {
-        console.log("⚠️ Error processing");
+        console.log(`⚠️ Error processing`);
       }
     }
 
@@ -221,6 +366,7 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
+ 
 
   console.log("\n✅ Monitor cycle complete!\n");
 }
@@ -233,7 +379,9 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log("📦 Monitoring: manual Hot Wheels product list");
+console.log(
+  "📦 Monitoring: Ferrari, Porsche, F1, Premium, Treasure Hunt, Mustang, Mazda, Lamborghini"
+);
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
@@ -241,3 +389,5 @@ process.on("SIGINT", () => {
   console.log("\n🛑 Shutting down...");
   process.exit(0);
 });
+
+
