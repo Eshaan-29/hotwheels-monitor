@@ -11,8 +11,6 @@ server.listen(port, () => {
   console.log(`HTTP server listening on port ${port}`);
 });
 
-
-
 import axios from "axios";
 import { load } from "cheerio";
 import * as cron from "node-cron";
@@ -110,6 +108,49 @@ const WISHLIST = [
       "exclusive",
       "special edition",
       "chase",
+    ],
+  },
+  {
+    name: "Mustang",
+    keywords: [
+      "mustang",
+      "ford mustang",
+      "gt500",
+      "shelby",
+      "boss",
+      "mach 1",
+      "fastback",
+    ],
+  },
+  {
+    name: "Mazda",
+    keywords: [
+      "mazda",
+      "rx-7",
+      "rx7",
+      "miata",
+      "mx-5",
+      "rx-8",
+      "rx8",
+      "speed3",
+      "mazdaspeed",
+      "rotary",
+    ],
+  },
+  {
+    name: "Lamborghini",
+    keywords: [
+      "lamborghini",
+      "lambo",
+      "aventador",
+      "reventon",
+      "gallardo",
+      "murcielago",
+      "diablo",
+      "countach",
+      "huracan",
+      "urus",
+      "sesto",
     ],
   },
 ];
@@ -319,10 +360,8 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
- 
 
   console.log("\n✅ Monitor cycle complete!\n");
-
 }
 
 console.log("🚀 Starting Hot Wheels Monitor...\n");
@@ -333,7 +372,9 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log("📦 Monitoring: Ferrari, Porsche, F1, Premium, Treasure Hunt");
+console.log(
+  "📦 Monitoring: Ferrari, Porsche, F1, Premium, Treasure Hunt, Mustang, Mazda, Lamborghini"
+);
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
