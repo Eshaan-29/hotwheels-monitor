@@ -20,6 +20,11 @@ import fs from "fs";
 
 dotenv.config();
 
+const RECIPIENTS = [
+  process.env.YOUR_WHATSAPP_NUMBER,
+  process.env.OTHER_WHATSAPP_NUMBER_1,
+].filter(Boolean) as string[];
+
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID || "",
   process.env.TWILIO_AUTH_TOKEN || ""
@@ -191,21 +196,20 @@ function updateProduct(name: string, data: Partial<Product>): void {
 
 async function sendWhatsApp(message: string, url?: string): Promise<void> {
   try {
-    if (
-      !process.env.TWILIO_WHATSAPP_NUMBER ||
-      !process.env.YOUR_WHATSAPP_NUMBER
-    ) {
+    if (!process.env.TWILIO_WHATSAPP_NUMBER || RECIPIENTS.length === 0) {
       console.log("⚠️ WhatsApp config missing");
       return;
     }
 
     const body = url ? `${message}\n\n🔗 ${url}` : message;
 
-    await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_NUMBER,
-      to: process.env.YOUR_WHATSAPP_NUMBER,
-      body,
-    });
+    for (const to of RECIPIENTS) {
+      await client.messages.create({
+        from: process.env.TWILIO_WHATSAPP_NUMBER,
+        to,
+        body,
+      });
+    }
 
     console.log("✅ WhatsApp Alert Sent");
   } catch (error) {
@@ -360,6 +364,7 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
+ await sendWhatsApp("Test alert from Hot Wheels monitor");
 
   console.log("\n✅ Monitor cycle complete!\n");
 }
