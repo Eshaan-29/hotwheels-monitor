@@ -41,7 +41,7 @@ interface Product {
 
 const WISHLIST = [
   {
-    name: "Twin Flame",
+    name: "TwinFlame",
     keywords: [
       "ferrari",
       "f40",
@@ -268,7 +268,7 @@ async function scrapeHotWheels(): Promise<Product[]> {
             $elem.find("a").first().attr("href") ||
             "";
 
-                  // TEST MODE: accept every product with a valid price & name
+                       // TEST MODE: accept every product with a valid price & name
           const matches = true; // force match for all items
 
           if (matches && price > 50 && name.length > 3) {
@@ -283,6 +283,7 @@ async function scrapeHotWheels(): Promise<Product[]> {
               lastAlertTime: new Date().toISOString(),
             });
           }
+
 
         } catch (e) {
           // Skip
