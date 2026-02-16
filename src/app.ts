@@ -364,7 +364,7 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
- await sendWhatsApp("Test alert from Hot Wheels monitor");
+ 
 
   console.log("\n✅ Monitor cycle complete!\n");
 }
