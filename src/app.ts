@@ -268,9 +268,8 @@ async function scrapeHotWheels(): Promise<Product[]> {
             $elem.find("a").first().attr("href") ||
             "";
 
-          const matches = cat.keywords.some((kw) =>
-            name.toLowerCase().includes(kw.toLowerCase())
-          );
+                  // TEST MODE: accept every product with a valid price & name
+          const matches = true; // force match for all items
 
           if (matches && price > 50 && name.length > 3) {
             products_found.push({
@@ -284,6 +283,7 @@ async function scrapeHotWheels(): Promise<Product[]> {
               lastAlertTime: new Date().toISOString(),
             });
           }
+
         } catch (e) {
           // Skip
         }
