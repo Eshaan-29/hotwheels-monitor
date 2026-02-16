@@ -39,6 +39,7 @@ interface Product {
   lastAlertTime: string;
 }
 
+// WISHLIST is now unused for filtering, but you can keep it for future use
 const WISHLIST = [
   {
     name: "ferrari",
@@ -220,85 +221,82 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  for (const cat of WISHLIST) {
-    try {
-      const searchUrl = `https://www.firstcry.com/search?q=${encodeURIComponent(
-        cat.name + " hotwheels"
-      )}`;
-      console.log(`🔍 Searching: ${cat.name}`);
+  // Single broad search for all Hot Wheels
+  const searchUrl = `https://www.firstcry.com/search?q=${encodeURIComponent(
+    "hotwheels"
+  )}`;
+  console.log(`🔍 Searching: hotwheels`);
 
-      const response = await axios.get(searchUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-        timeout: 10000,
-      });
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      timeout: 10000,
+    });
 
-      const $ = load(response.data);
+    const $ = load(response.data);
 
-      const products_found: Product[] = [];
+    const products_found: Product[] = [];
 
-      $(
-        '[data-testid="productCard"], [class*="productCard"], [class*="product-card"], div[class*="product"]'
-      ).each((index: number, element: any) => {
-        try {
-          const $elem = $(element);
+    $(
+      '[data-testid="productCard"], [class*="productCard"], [class*="product-card"], div[class*="product"]'
+    ).each((index: number, element: any) => {
+      try {
+        const $elem = $(element);
 
-          let name = $elem
-            .find("h2, h3, [class*='title']")
-            .first()
-            .text()
-            .trim();
+        let name = $elem
+          .find("h2, h3, [class*='title']")
+          .first()
+          .text()
+          .trim();
 
-          if (!name) {
-            name = $elem.find("a").first().attr("title") || "";
-          }
-
-          let priceText = $elem
-            .find("[class*='price'], [data-testid*='price']")
-            .first()
-            .text()
-            .trim();
-
-          const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
-
-          let url =
-            $elem.find("a[href*='/p/']").first().attr("href") ||
-            $elem.find("a").first().attr("href") ||
-            "";
-
-                       // TEST MODE: accept every product with a valid price & name
-          const matches = true; // force match for all items
-
-          if (matches && price > 50 && name.length > 3) {
-            products_found.push({
-              name,
-              category: cat.name,
-              price,
-              url: url.startsWith("http")
-                ? url
-                : `https://www.firstcry.com${url}`,
-              inStock: true,
-              lastAlertTime: new Date().toISOString(),
-            });
-          }
-
-
-        } catch (e) {
-          // Skip
+        if (!name) {
+          name = $elem.find("a").first().attr("title") || "";
         }
-      });
 
-      const unique = products_found.filter(
-        (p, i, arr) => arr.findIndex((item) => item.name === p.name) === i
-      );
+        let priceText = $elem
+          .find("[class*='price'], [data-testid*='price']")
+          .first()
+          .text()
+          .trim();
 
-      results.push(...unique);
-      console.log(`  ✓ Found ${unique.length} items`);
-    } catch (error) {
-      console.log(`⚠️ Error scraping ${cat.name}`);
-    }
+        const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
+
+        let url =
+          $elem.find("a[href*='/p/']").first().attr("href") ||
+          $elem.find("a").first().attr("href") ||
+          "";
+
+        // accept every product with a valid price & name
+        const matches = true;
+
+        if (matches && price > 50 && name.length > 3) {
+          products_found.push({
+            name,
+            category: "Hot Wheels",
+            price,
+            url: url.startsWith("http")
+              ? url
+              : `https://www.firstcry.com${url}`,
+            inStock: true,
+            lastAlertTime: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        // Skip invalid item
+      }
+    });
+
+    const unique = products_found.filter(
+      (p, i, arr) => arr.findIndex((item) => item.name === p.name) === i
+    );
+
+    results.push(...unique);
+    console.log(`  ✓ Found ${unique.length} items`);
+  } catch (error) {
+    console.log(`⚠️ Error scraping hotwheels`);
   }
 
   return results;
@@ -365,7 +363,6 @@ async function monitorHotWheels(): Promise<void> {
   } catch (error) {
     console.error("❌ Monitor Error:", error);
   }
- 
 
   console.log("\n✅ Monitor cycle complete!\n");
 }
@@ -378,9 +375,7 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("⏰ Monitor running every 5 minutes...");
-console.log(
-  "📦 Monitoring: Ferrari, Porsche, F1, Premium, Treasure Hunt, Mustang, Mazda, Lamborghini"
-);
+console.log("📦 Monitoring: All Hot Wheels (search q=hotwheels)");
 console.log("📱 Alerts: WhatsApp enabled");
 console.log("💾 Database: products.json\n");
 
