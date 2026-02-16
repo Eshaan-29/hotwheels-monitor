@@ -99,7 +99,7 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  const listUrl = "https://www.firstcry.com/hot-wheels/5/0/113";
+  const listUrl = "https://www.firstcry.com/hotwheels/5/0/113?sort=popularity&q=ard-hotwheels&ref2=q_ard_hotwheels&asid=53241";
   console.log("🔍 Fetching Hot Wheels list page");
 
   try {
