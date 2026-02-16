@@ -39,127 +39,7 @@ interface Product {
   lastAlertTime: string;
 }
 
-// WISHLIST is now unused for filtering, but you can keep it for future use
-const WISHLIST = [
-  {
-    name: "ferrari",
-    keywords: [
-      "ferrari",
-      "f40",
-      "f8",
-      "488",
-      "sf90",
-      "f430",
-      "laferrari",
-      "testarossa",
-      "portofino",
-      "812",
-      "california",
-      "enzo",
-    ],
-  },
-  {
-    name: "Porsche",
-    keywords: [
-      "porsche",
-      "911",
-      "turbo",
-      "gt",
-      "carrera",
-      "cayman",
-      "boxster",
-      "panamera",
-      "cayenne",
-      "macan",
-      "rs",
-      "rsr",
-    ],
-  },
-  {
-    name: "F1",
-    keywords: [
-      "formula",
-      "f1",
-      "formula 1",
-      "mclaren",
-      "red bull",
-      "mercedes",
-      "ferrari f1",
-      "aston martin",
-      "alpine",
-      "haas",
-      "williams",
-    ],
-  },
-  {
-    name: "Premium",
-    keywords: [
-      "premium",
-      "collector",
-      "vintage",
-      "classic",
-      "real riders",
-      "metal base",
-      "chrome",
-      "collection",
-    ],
-  },
-  {
-    name: "Treasure Hunt",
-    keywords: [
-      "treasure hunt",
-      "sth",
-      "rare",
-      "limited",
-      "exclusive",
-      "special edition",
-      "chase",
-    ],
-  },
-  {
-    name: "Mustang",
-    keywords: [
-      "mustang",
-      "ford mustang",
-      "gt500",
-      "shelby",
-      "boss",
-      "mach 1",
-      "fastback",
-    ],
-  },
-  {
-    name: "Mazda",
-    keywords: [
-      "mazda",
-      "rx-7",
-      "rx7",
-      "miata",
-      "mx-5",
-      "rx-8",
-      "rx8",
-      "speed3",
-      "mazdaspeed",
-      "rotary",
-    ],
-  },
-  {
-    name: "Lamborghini",
-    keywords: [
-      "lamborghini",
-      "lambo",
-      "aventador",
-      "reventon",
-      "gallardo",
-      "murcielago",
-      "diablo",
-      "countach",
-      "huracan",
-      "urus",
-      "sesto",
-    ],
-  },
-];
+
 
 let products: Product[] = [];
 
@@ -221,7 +101,6 @@ async function sendWhatsApp(message: string, url?: string): Promise<void> {
 async function scrapeHotWheels(): Promise<Product[]> {
   const results: Product[] = [];
 
-  // Single broad search for all Hot Wheels
   const searchUrl = `https://www.firstcry.com/search?q=${encodeURIComponent(
     "hotwheels"
   )}`;
@@ -269,7 +148,6 @@ async function scrapeHotWheels(): Promise<Product[]> {
           $elem.find("a").first().attr("href") ||
           "";
 
-        // accept every product with a valid price & name
         const matches = true;
 
         if (matches && price > 50 && name.length > 3) {
@@ -332,28 +210,8 @@ async function monitorHotWheels(): Promise<void> {
             `🎉 *NEW ${product.category.toUpperCase()}!*\n\n${product.name}\n\n💰 Price: ₹${product.price}`,
             product.url
           );
-        } else if (product.price < existing.price) {
-          const discount = (
-            ((existing.price - product.price) / existing.price) *
-            100
-          ).toFixed(1);
-
-          console.log(`\n💰 PRICE DROP!`);
-          console.log(`   Name: ${product.name}`);
-          console.log(`   Old: ₹${existing.price}`);
-          console.log(`   New: ₹${product.price}`);
-          console.log(`   Discount: ${discount}%`);
-
-          updateProduct(product.name, {
-            price: product.price,
-            lastAlertTime: new Date().toISOString(),
-          });
-
-          await sendWhatsApp(
-            `💰 *PRICE DROP!*\n\n${product.name}\n\nOld: ₹${existing.price}\nNew: ₹${product.price}\n📉 ${discount}% Off`,
-            product.url
-          );
         }
+        // no price-drop branch
       } catch (error) {
         console.log(`⚠️ Error processing`);
       }
